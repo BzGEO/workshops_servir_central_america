@@ -1,0 +1,71 @@
+// Muestra las más recientes imágenes disponibles para el área central de Panamá //
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+var b = require('users/servirbz/packages:img_recent'); 
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+var pt = ee.Geometry.Point([-79.55062866210938,8.957653883033906]).buffer(250);
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+b.most_recent_("Landsat-7", b.l7_0, pt);
+b.most_recent_("Landsat-8", b.l8_0, pt);
+b.most_recent_("S1 ascending", b.s1_asc, pt);
+b.most_recent_("S1 descending", b.s1_dsc, pt);
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+var t = 'system:time_start';
+var d = 'YYYY-MM-dd';
+
+var s1_asc_date = ee.Date(ee.Image(b.s1_asc.filterBounds(pt).sort(t, false).first()).get(t));
+var s1_dsc_date = ee.Date(ee.Image(b.s1_dsc.filterBounds(pt).sort(t, false).first()).get(t));
+var l7_date = ee.Date(ee.Image(b.l7_0.filterBounds(pt).sort(t, false).first()).get(t));
+var l8_date = ee.Date(ee.Image(b.l8_0.filterBounds(pt).sort(t, false).first()).get(t));
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+var s1_dsc = ee.ImageCollection("COPERNICUS/S1_GRD")
+    .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+    .filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING')) // Filter by ascending orbit
+    .filter(ee.Filter.eq('relativeOrbitNumber_start', 113)) // Filter by rel orbit 28
+    .filterDate(s1_dsc_date.advance(-1, 'day'), s1_dsc_date.advance(2, 'day'))
+    .filter(ee.Filter.inList('sliceNumber', [1,2]))
+    .median().select('VV'); 
+
+var s1_asc = ee.ImageCollection("COPERNICUS/S1_GRD")
+    .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+    .filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING')) // Filter by ascending orbit
+    .filter(ee.Filter.eq('relativeOrbitNumber_start', 121)) // Filter by rel orbit 28
+    .filterDate(s1_asc_date.advance(-1, 'day'), s1_asc_date.advance(2, 'day'))
+    .filter(ee.Filter.inList('sliceNumber', [1,2]))
+    .median().select('VV'); 
+
+var l7 = ee.ImageCollection("LANDSAT/LE07/C01/T1_RT")
+    .filterDate(l7_date, l7_date.advance(1, 'day'))
+    .filter(ee.Filter.inList('WRS_PATH', [12])).filter(ee.Filter.inList('WRS_ROW', [53,54,55])).median();
+    
+var l8 = ee.ImageCollection("LANDSAT/LC08/C01/T1_RT")
+    .filterDate(l8_date, l8_date.advance(1, 'day'))
+    .filter(ee.Filter.inList('WRS_PATH', [12])).filter(ee.Filter.inList('WRS_ROW', [53,54,55])).median();
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+var pa0 = ee.FeatureCollection('WCMC/WDPA/current/polygons').filter(ee.Filter.inList('ISO3', ['PAN']));
+var prot_areas = ee.Image().byte().paint({featureCollection:pa0,color:'ffffff',width:1});
+var cam_bnds = ee.FeatureCollection("users/servirbz/aoi/lac/cam/cam_borders_ln");
+var bounds2 = ee.Image().byte().paint({featureCollection:cam_bnds,color:'ffffff',width:2});
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+Map.addLayer(s1_dsc, {bands: ['VV'], min: -12, max: 0}, 'S1_desc_recent', true);
+Map.addLayer(s1_asc, {bands: ['VV'], min: -12, max: 0}, 'S1_asc_recent', false);
+Map.addLayer(l7, {min:11,max:155,bands:['B5','B4','B3']}, 'L7_recent', false);
+Map.addLayer(l8, {min:4123,max:24000,bands:['B6','B5','B4']}, 'L8_recent', true);
+Map.addLayer(bounds2,{palette: "white"},"Int'l Borders"); // Add cam borders, with black outline
+Map.addLayer(prot_areas,{palette: "yellow"},'Protected_areas', false);
+Map.centerObject(pt, 8);
+
+////////////////////////////////////////////////////////////////////////////////////////////////

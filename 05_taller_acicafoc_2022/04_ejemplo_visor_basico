@@ -1,0 +1,57 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var cam_proyectos_acicafoc_kfw = ee.FeatureCollection("projects/sica/x_tmp/acicafoc/cam_proyectos_acicafoc_kfw_2022"),
+    cam_kba = ee.FeatureCollection("projects/sica/x_tmp/acicafoc/cam_kba_birdlife_2022"),
+    mes_prot_areas = ee.FeatureCollection("projects/sica/x_tmp/acicafoc/mes_prot_areas_wdpa_2019"),
+    cob_esri_2020 = ee.ImageCollection("projects/sat-io/open-datasets/landcover/ESRI_Global-LULC_10m"),
+    roi = 
+    /* color: #98ff00 */
+    /* shown: false */
+    ee.Geometry.Polygon(
+        [[[-93, 21.75],
+          [-93, 7],
+          [-77, 7],
+          [-77, 21.75]]], null, false);
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+// Última actualización: 30 de Agosto de 2022
+
+// Convertir datos vectoriales a lineas de raster
+var cam_kba_ln = ee.Image().byte().paint({featureCollection:cam_kba,width:2});
+var mes_prot_areas_ln = ee.Image().byte().paint({featureCollection:mes_prot_areas,width:1});
+var proyectos_ln = ee.Image().byte().paint({featureCollection:cam_proyectos_acicafoc_kfw,width:10});
+
+// Dictionario de cobertura de Esri
+var dict = {
+"names": ["Agua","Arboles","Pastizales","Veg_inundada","Cultivos","Arbustos","Areas_construidos","Areas_sin_veg","Hielo","Nubes"],
+"colors": ["#1A5BAB","#358221","#A7D282","#87D19E","f096ff","#EECFA8","#ED022A","#EDE9E4","#F2FAFF","#C8C8C8"]};
+
+// Mostrar las capas
+Map.addLayer(cob_esri_2020.mosaic().clip(roi), {min:1, max:10, palette:dict['colors'],opacity:1}, 'Cobertura_Esri_2020', true);
+Map.addLayer(cam_kba_ln, {palette: ['white']},'Areas_claves_de_biodiversidad', true);
+Map.addLayer(mes_prot_areas_ln, {palette: ['yellow']},'Areas_protegidas', true);
+Map.addLayer(cam_proyectos_acicafoc_kfw, {},'Sitios_proyectos_ACICAFOC_KFW', true);
+
+// Otras opciones de la vista
+Map.setOptions('HYBRID');
+Map.centerObject(cam_proyectos_acicafoc_kfw, 6);
+
+// Crear leyenda para agregar al mapa
+var legend = ui.Panel({style: {position: 'bottom-left', padding: '8px 15px'}});
+
+function add_legend(panel, dict, title) {
+var legendTitle = ui.Label({value: title,style: {fontWeight: 'bold',fontSize: '16px',margin: '0 0 4px 0',padding: '0'}});
+panel.add(legendTitle);
+var loading = ui.Label('Loading legend...', {margin: '2px 0 4px 0'});
+panel.add(loading);
+var makeRow = function(color, name) {
+var colorBox = ui.Label({style: {backgroundColor: color,padding: '8px',margin: '0 0 4px 0'}});
+var description = ui.Label({value: name,style: {margin: '0 0 4px 6px'}});
+return ui.Panel({widgets: [colorBox, description],layout: ui.Panel.Layout.Flow('horizontal')});};
+var palette = dict['colors'];
+var names = dict['names'];
+loading.style().set('shown', false);
+for (var i = 0; i < names.length; i++) {panel.add(makeRow(palette[i], names[i]));}
+//to_map.add(panel);
+Map.add(legend)
+}
+
+add_legend(legend, dict, 'Cobertura de la tierra (2020)');

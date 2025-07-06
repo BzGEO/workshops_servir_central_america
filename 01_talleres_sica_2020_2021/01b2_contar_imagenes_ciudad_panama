@@ -1,0 +1,8 @@
+
+var pt = ee.Geometry.Point([-79.5141, 8.9965]).buffer(250);
+
+var s1_asc = ee.ImageCollection("COPERNICUS/S1_GRD").filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING'));
+var s1_dsc = ee.ImageCollection("COPERNICUS/S1_GRD").filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'));
+
+print(s1_asc.filterBounds(pt));
+print(s1_dsc.filterBounds(pt));

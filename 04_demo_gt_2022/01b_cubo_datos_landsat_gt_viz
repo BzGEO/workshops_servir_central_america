@@ -1,0 +1,50 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var aoi = 
+    /* color: #d63000 */
+    /* shown: false */
+    ee.Geometry.Polygon(
+        [[[-91.01146240234377, 17.27165663979285],
+          [-91.52507324218752, 17.27296800141484],
+          [-90.86040039062502, 16.67271322553833],
+          [-90.56356739658294, 16.348702090370814],
+          [-90.55278320312502, 16.161602390969836],
+          [-91.78325195312502, 16.161602390969836],
+          [-92.33256835937502, 15.294462666762616],
+          [-92.18974609375002, 15.071803284736202],
+          [-92.35454101562502, 14.519458968724447],
+          [-91.62944335937502, 13.987054377736948],
+          [-91.11308593750002, 13.848425118104068],
+          [-90.59929186802441, 13.83156726063201],
+          [-90.12431640625002, 13.675022284599786],
+          [-89.35252685546877, 14.351887395489003],
+          [-89.24137717051521, 14.478229606138441],
+          [-89.07237548828127, 14.644390152927746],
+          [-89.16026389025454, 14.872732175044147],
+          [-89.07512207031252, 14.997531501076088],
+          [-88.17424316406252, 15.717919276572847],
+          [-88.58897705078127, 16.013817202204628],
+          [-88.85542409987836, 15.949318159639112],
+          [-89.17125244140627, 15.955728730568783],
+          [-89.11357421875002, 17.834673205442794],
+          [-90.06797629626308, 17.84092900506214],
+          [-91.02519531250002, 17.839902314460133]]]),
+    aoi2 = ee.FeatureCollection("projects/sica/aoi/limites_nacionales/gt_borders_marn"),
+    stk_r70 = ee.Image("projects/sica/compil_imagenes/opticas/landsat_ft/gt_landsat_boa_fitted_r70_1984_2022_0406_030m");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+// Last updated: 6 April 2022
+
+print(stk_r70);
+
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_1984','B4_1984','B3_1984']}, "Landsat_1984", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_1990','B4_1990','B3_1990']}, "Landsat_1990", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_1995','B4_1995','B3_1995']}, "Landsat_1995", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2000','B4_2000','B3_2000']}, "Landsat_2000", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2005','B4_2005','B3_2005']}, "Landsat_2005", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2010','B4_2010','B3_2010']}, "Landsat_2010", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2015','B4_2015','B3_2015']}, "Landsat_2015", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2020','B4_2020','B3_2020']}, "Landsat_2020", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2021','B4_2021','B3_2021']}, "Landsat_2021", false);
+Map.addLayer(stk_r70.clip(aoi2), {min: 0, max: 4500, bands:['B5_2022','B4_2022','B3_2022']}, "Landsat_2022", true);
+
+Map.setOptions('SATELLITE');
+Map.centerObject(aoi,8);

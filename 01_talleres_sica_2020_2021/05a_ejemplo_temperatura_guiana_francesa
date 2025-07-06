@@ -1,0 +1,52 @@
+
+var roi_1 = ee.Geometry.Rectangle(-53, 4, -54, 5); // specify selection box here
+var roi_2 = ee.Geometry.Rectangle(-86, 13, -87, 14);
+
+var regions = ee.FeatureCollection([
+  ee.Feature(roi_1, {label: 'forest_Guyane'}),
+  ee.Feature(roi_2, {label: 'ag_C_America'}),
+  ]);
+
+var empty = ee.Image().byte();
+var roi_1_ = empty.paint({featureCollection:roi_1, color:1, width:1});
+var roi_2_ = empty.paint({featureCollection:roi_2, color:1, width:1});
+
+var K2C = function(image) {
+  return image.select('LST_Day_1km').multiply(ee.Number(0.02)).subtract(ee.Number(273.15)).set('system:time_start',image.get('system:time_start'));
+};
+
+var mod11a2 = ee.ImageCollection("MODIS/006/MOD11A2")
+    .filterDate('2012-01-01', '2016-12-31')
+    .select('LST_Day_1km').map(K2C);
+var myd11a2 = ee.ImageCollection("MODIS/006/MYD11A2")
+    .filterDate('2012-01-01', '2016-12-31')
+    .select('LST_Day_1km').map(K2C);
+var mcd11a2 = ee.ImageCollection(mod11a2.merge(myd11a2)).sort('system:time_start', true);
+
+var ts1 = ui.Chart.image.seriesByRegion(
+     mcd11a2, regions, ee.Reducer.median(), 'LST_Day_1km', 500, 'system:time_start', 'label')
+         .setChartType('ScatterChart')
+         .setOptions({
+           title: 'Median MODIS land surface temperature (LST) time series: 2003-2017',
+           vAxis: {title: 'LST (degrees C)'},
+           lineWidth: 1,
+           pointSize: 4,
+           series: {
+             0: {color: 'green'},
+             1: {color: 'yellow'}
+ }});
+var ts2 = ui.Chart.image.seriesByRegion(
+     mcd11a2, regions, ee.Reducer.mean(), 'LST_Day_1km', 500, 'system:time_start', 'label')
+         .setChartType('ScatterChart')
+         .setOptions({
+           title: 'Mean MODIS land surface temperature (LST) time series: 2003-2017',
+           vAxis: {title: 'LST (degrees C)'},
+           lineWidth: 1,
+           pointSize: 4,
+           series: {
+             0: {color: 'green'},
+             1: {color: 'yellow'}
+ }});
+
+print(ts1);
+print(ts2);

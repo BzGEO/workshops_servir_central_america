@@ -1,0 +1,206 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Last modified: 6 April 2022 | Guatemala domain
+// orig. code: https://code.earthengine.google.com/?scriptPath=users%2Fclarype%2FLT-Change-DB%3ALt-Change-Db.js
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// load the LandTrendr library
+var ltgee = require('users/servirbz/servir_lcc:LT_base/collection2/LandTrendr_030m'); // revised LT
+//var ltgee = require('users/emaprlab/public:Modules/LandTrendr.js'); // original LT
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// define external parameters
+var roi = ee.Geometry.Polygon(
+        [[[-91.01146240234377, 17.27165663979285],[-91.52507324218752, 17.27296800141484],
+          [-90.86040039062502, 16.67271322553833],[-90.56356739658294, 16.348702090370814],
+          [-90.55278320312502, 16.161602390969836],[-91.78325195312502, 16.161602390969836],
+          [-92.33256835937502, 15.294462666762616],[-92.18974609375002, 15.071803284736202],
+          [-92.35454101562502, 14.519458968724447],[-91.62944335937502, 13.987054377736948],
+          [-91.11308593750002, 13.848425118104068],[-90.59929186802441, 13.83156726063201],
+          [-90.12431640625002, 13.675022284599786],[-89.35252685546877, 14.351887395489003],
+          [-89.24137717051521, 14.478229606138441],[-89.07237548828127, 14.644390152927746],
+          [-89.16026389025454, 14.872732175044147],[-89.07512207031252, 14.997531501076088],
+          [-88.17424316406252, 15.717919276572847],[-88.58897705078127, 16.013817202204628],
+          [-88.85542409987836, 15.949318159639112],[-89.17125244140627, 15.955728730568783],
+          [-89.11357421875002, 17.834673205442794],[-90.06797629626308, 17.84092900506214],
+          [-91.02519531250002, 17.839902314460133]]]);
+
+var featureCol = roi; // provide the path to aoi asset
+var featureKey = 'landsat_boa'; // provide the feature attribute that will define the study area
+var featureValue = 'mac'; // what unique value from the above attribute field defines the study area
+var runName = 'v01'; // a version name to identify the run; it should NOT include a dash/hyphen (-) 
+var gDriveFolder = 'x_tmp_gee_outputs'; // what is the name of the Google Drive folder that you want the outputs placed in
+var startYear = 1984; // what year do you want to start the time series 
+var endYear = 2022; // what year do you want to end the time series
+var startDay = '01-01'; // what should the beginning date of annual composite be | month-day 06-01
+var endDay =   '05-31'; // what should the ending date of annual composite be | month-day 09-30
+var index = 'NBR'; // select the index to run, option are: 'NBRz', Band5z, 'ENC'
+var maskThese = ['cloud', 'shadow', 'snow']; // select classes to mask as a list of strings: 'cloud', 'shadow', 'snow', 'water'
+
+// define internal parameters - see LandTrendr segmentation parameters section of LT-ChangeDB guide
+var runParams = { 
+  maxSegments: 8,
+  spikeThreshold: 0.9,
+  vertexCountOvershoot: 3,
+  preventOneYearRecovery: true,
+  recoveryThreshold: 0.75,
+  pvalThreshold: 0.05,
+  bestModelProportion: 0.70, // increased from default of 0.50
+  minObservationsNeeded: 6};
+
+// optional inputs
+var outProj = 'EPSG:32616'; // what should the output projection be? 'EPSG:5070' is North American Albers
+var affine = [30.0, 0, 15.0, 0, -30.0, 15.0]; // should center of pixel be tied to grid or corner - 15.0 is center, change to 0.0 for corner (15.0 aligns to NLCD products)
+var options = {                            // options to exclude images
+  'exclude':{
+    'imgIds':[],                            // ...provide a list of image ids as an array
+    'slcOff':false                          // ...include Landsat 7 scan line corrector off images (true or false)
+  }};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// buffer the aoi 10 pixels to give consideration to mmu filter
+var aoiBuffer = 300;
+
+// get geometry stuff
+var aoi = ee.FeatureCollection(featureCol).geometry().buffer(aoiBuffer);
+
+// make annual composite collections
+var srCollection = ltgee.buildSRcollection(startYear, endYear, startDay, endDay, aoi, maskThese, options);
+var ltCollection = ltgee.buildLTcollection(srCollection, index, []);
+
+// run landtrendr
+runParams.timeSeries = ltCollection;
+var ltResult = ee.Algorithms.TemporalSegmentation.LandTrendr(runParams);
+console.log(runParams);
+// get the rmse
+var rmse = ltResult.select('rmse');
+
+// get the year array out for use in fitting TC
+var lt = ltResult.select('LandTrendr');
+var vertMask = lt.arraySlice(0, 3, 4);
+var vertYears = lt.select('LandTrendr').arraySlice(0, 0, 1).arrayMask(vertMask);
+
+// make a TC source stack
+var tc = ltgee.transformSRcollection(srCollection, ['B1','B2','B3','B4','B5','B7']);
+var tcimage = tc.toBands();
+var tcbSource = tcimage.select("^.*TCB.*$").clip(aoi);
+var tcwSource = tcimage.select("^.*TCW.*$").clip(aoi);
+var tcgSource = tcimage.select("^.*TCG.*$").clip(aoi);
+
+// fit TC
+var fittedTC = ee.Algorithms.TemporalSegmentation.LandTrendrFit(tc, vertYears, runParams.spikeThreshold, runParams.minObservationsNeeded);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+var from = ['yr_1985', 'yr_1986', 'yr_1987', 'yr_1988', 'yr_1989', 'yr_1990', 'yr_1991', 'yr_1992', 'yr_1993', 'yr_1994', 'yr_1995', 'yr_1996', 'yr_1997', 'yr_1998', 'yr_1999', 'yr_2000', 'yr_2001', 'yr_2002', 'yr_2003', 'yr_2004', 'yr_2005', 'yr_2006', 'yr_2007', 'yr_2008', 'yr_2009', 'yr_2010', 'yr_2011', 'yr_2012', 'yr_2013', 'yr_2014', 'yr_2015', 'yr_2016', 'yr_2017', 'yr_2018', 'yr_2019', 'yr_2020', 'yr_2021'];
+var bnds_b1 = ['B1_1985', 'B1_1986', 'B1_1987', 'B1_1988', 'B1_1989', 'B1_1990', 'B1_1991', 'B1_1992', 'B1_1993', 'B1_1994', 'B1_1995', 'B1_1996', 'B1_1997', 'B1_1998', 'B1_1999', 'B1_2000', 'B1_2001', 'B1_2002', 'B1_2003', 'B1_2004', 'B1_2005', 'B1_2006', 'B1_2007', 'B1_2008', 'B1_2009', 'B1_2010', 'B1_2011', 'B1_2012', 'B1_2013', 'B1_2014', 'B1_2015', 'B1_2016', 'B1_2017', 'B1_2018', 'B1_2019', 'B1_2020', 'B1_2021'];
+var bnds_b2 = ['B2_1985', 'B2_1986', 'B2_1987', 'B2_1988', 'B2_1989', 'B2_1990', 'B2_1991', 'B2_1992', 'B2_1993', 'B2_1994', 'B2_1995', 'B2_1996', 'B2_1997', 'B2_1998', 'B2_1999', 'B2_2000', 'B2_2001', 'B2_2002', 'B2_2003', 'B2_2004', 'B2_2005', 'B2_2006', 'B2_2007', 'B2_2008', 'B2_2009', 'B2_2010', 'B2_2011', 'B2_2012', 'B2_2013', 'B2_2014', 'B2_2015', 'B2_2016', 'B2_2017', 'B2_2018', 'B2_2019', 'B2_2020', 'B2_2021'];
+var bnds_b3 = ['B3_1985', 'B3_1986', 'B3_1987', 'B3_1988', 'B3_1989', 'B3_1990', 'B3_1991', 'B3_1992', 'B3_1993', 'B3_1994', 'B3_1995', 'B3_1996', 'B3_1997', 'B3_1998', 'B3_1999', 'B3_2000', 'B3_2001', 'B3_2002', 'B3_2003', 'B3_2004', 'B3_2005', 'B3_2006', 'B3_2007', 'B3_2008', 'B3_2009', 'B3_2010', 'B3_2011', 'B3_2012', 'B3_2013', 'B3_2014', 'B3_2015', 'B3_2016', 'B3_2017', 'B3_2018', 'B3_2019', 'B3_2020', 'B3_2021'];
+var bnds_b4 = ['B4_1985', 'B4_1986', 'B4_1987', 'B4_1988', 'B4_1989', 'B4_1990', 'B4_1991', 'B4_1992', 'B4_1993', 'B4_1994', 'B4_1995', 'B4_1996', 'B4_1997', 'B4_1998', 'B4_1999', 'B4_2000', 'B4_2001', 'B4_2002', 'B4_2003', 'B4_2004', 'B4_2005', 'B4_2006', 'B4_2007', 'B4_2008', 'B4_2009', 'B4_2010', 'B4_2011', 'B4_2012', 'B4_2013', 'B4_2014', 'B4_2015', 'B4_2016', 'B4_2017', 'B4_2018', 'B4_2019', 'B4_2020', 'B4_2021'];
+var bnds_b5 = ['B5_1985', 'B5_1986', 'B5_1987', 'B5_1988', 'B5_1989', 'B5_1990', 'B5_1991', 'B5_1992', 'B5_1993', 'B5_1994', 'B5_1995', 'B5_1996', 'B5_1997', 'B5_1998', 'B5_1999', 'B5_2000', 'B5_2001', 'B5_2002', 'B5_2003', 'B5_2004', 'B5_2005', 'B5_2006', 'B5_2007', 'B5_2008', 'B5_2009', 'B5_2010', 'B5_2011', 'B5_2012', 'B5_2013', 'B5_2014', 'B5_2015', 'B5_2016', 'B5_2017', 'B5_2018', 'B5_2019', 'B5_2020', 'B5_2021'];
+var bnds_b7 = ['B7_1985', 'B7_1986', 'B7_1987', 'B7_1988', 'B7_1989', 'B7_1990', 'B7_1991', 'B7_1992', 'B7_1993', 'B7_1994', 'B7_1995', 'B7_1996', 'B7_1997', 'B7_1998', 'B7_1999', 'B7_2000', 'B7_2001', 'B7_2002', 'B7_2003', 'B7_2004', 'B7_2005', 'B7_2006', 'B7_2007', 'B7_2008', 'B7_2009', 'B7_2010', 'B7_2011', 'B7_2012', 'B7_2013', 'B7_2014', 'B7_2015', 'B7_2016', 'B7_2017', 'B7_2018', 'B7_2019', 'B7_2020', 'B7_2021'];
+*/
+
+var from = ['yr_1984', 'yr_1985', 'yr_1986', 'yr_1987', 'yr_1988', 'yr_1989', 'yr_1990', 'yr_1991', 'yr_1992', 'yr_1993', 'yr_1994', 'yr_1995', 'yr_1996', 'yr_1997', 'yr_1998', 'yr_1999', 'yr_2000', 'yr_2001', 'yr_2002', 'yr_2003', 'yr_2004', 'yr_2005', 'yr_2006', 'yr_2007', 'yr_2008', 'yr_2009', 'yr_2010', 'yr_2011', 'yr_2012', 'yr_2013', 'yr_2014', 'yr_2015', 'yr_2016', 'yr_2017', 'yr_2018', 'yr_2019', 'yr_2020', 'yr_2021', 'yr_2022'];
+var bnds_b1 = ['B1_1984','B1_1985', 'B1_1986', 'B1_1987', 'B1_1988', 'B1_1989', 'B1_1990', 'B1_1991', 'B1_1992', 'B1_1993', 'B1_1994', 'B1_1995', 'B1_1996', 'B1_1997', 'B1_1998', 'B1_1999', 'B1_2000', 'B1_2001', 'B1_2002', 'B1_2003', 'B1_2004', 'B1_2005', 'B1_2006', 'B1_2007', 'B1_2008', 'B1_2009', 'B1_2010', 'B1_2011', 'B1_2012', 'B1_2013', 'B1_2014', 'B1_2015', 'B1_2016', 'B1_2017', 'B1_2018', 'B1_2019', 'B1_2020', 'B1_2021', 'B1_2022'];
+var bnds_b2 = ['B2_1984','B2_1985', 'B2_1986', 'B2_1987', 'B2_1988', 'B2_1989', 'B2_1990', 'B2_1991', 'B2_1992', 'B2_1993', 'B2_1994', 'B2_1995', 'B2_1996', 'B2_1997', 'B2_1998', 'B2_1999', 'B2_2000', 'B2_2001', 'B2_2002', 'B2_2003', 'B2_2004', 'B2_2005', 'B2_2006', 'B2_2007', 'B2_2008', 'B2_2009', 'B2_2010', 'B2_2011', 'B2_2012', 'B2_2013', 'B2_2014', 'B2_2015', 'B2_2016', 'B2_2017', 'B2_2018', 'B2_2019', 'B2_2020', 'B2_2021', 'B2_2022'];
+var bnds_b3 = ['B3_1984','B3_1985', 'B3_1986', 'B3_1987', 'B3_1988', 'B3_1989', 'B3_1990', 'B3_1991', 'B3_1992', 'B3_1993', 'B3_1994', 'B3_1995', 'B3_1996', 'B3_1997', 'B3_1998', 'B3_1999', 'B3_2000', 'B3_2001', 'B3_2002', 'B3_2003', 'B3_2004', 'B3_2005', 'B3_2006', 'B3_2007', 'B3_2008', 'B3_2009', 'B3_2010', 'B3_2011', 'B3_2012', 'B3_2013', 'B3_2014', 'B3_2015', 'B3_2016', 'B3_2017', 'B3_2018', 'B3_2019', 'B3_2020', 'B3_2021', 'B3_2022'];
+var bnds_b4 = ['B4_1984','B4_1985', 'B4_1986', 'B4_1987', 'B4_1988', 'B4_1989', 'B4_1990', 'B4_1991', 'B4_1992', 'B4_1993', 'B4_1994', 'B4_1995', 'B4_1996', 'B4_1997', 'B4_1998', 'B4_1999', 'B4_2000', 'B4_2001', 'B4_2002', 'B4_2003', 'B4_2004', 'B4_2005', 'B4_2006', 'B4_2007', 'B4_2008', 'B4_2009', 'B4_2010', 'B4_2011', 'B4_2012', 'B4_2013', 'B4_2014', 'B4_2015', 'B4_2016', 'B4_2017', 'B4_2018', 'B4_2019', 'B4_2020', 'B4_2021', 'B4_2022'];
+var bnds_b5 = ['B5_1984','B5_1985', 'B5_1986', 'B5_1987', 'B5_1988', 'B5_1989', 'B5_1990', 'B5_1991', 'B5_1992', 'B5_1993', 'B5_1994', 'B5_1995', 'B5_1996', 'B5_1997', 'B5_1998', 'B5_1999', 'B5_2000', 'B5_2001', 'B5_2002', 'B5_2003', 'B5_2004', 'B5_2005', 'B5_2006', 'B5_2007', 'B5_2008', 'B5_2009', 'B5_2010', 'B5_2011', 'B5_2012', 'B5_2013', 'B5_2014', 'B5_2015', 'B5_2016', 'B5_2017', 'B5_2018', 'B5_2019', 'B5_2020', 'B5_2021', 'B5_2022'];
+var bnds_b7 = ['B7_1984','B7_1985', 'B7_1986', 'B7_1987', 'B7_1988', 'B7_1989', 'B7_1990', 'B7_1991', 'B7_1992', 'B7_1993', 'B7_1994', 'B7_1995', 'B7_1996', 'B7_1997', 'B7_1998', 'B7_1999', 'B7_2000', 'B7_2001', 'B7_2002', 'B7_2003', 'B7_2004', 'B7_2005', 'B7_2006', 'B7_2007', 'B7_2008', 'B7_2009', 'B7_2010', 'B7_2011', 'B7_2012', 'B7_2013', 'B7_2014', 'B7_2015', 'B7_2016', 'B7_2017', 'B7_2018', 'B7_2019', 'B7_2020', 'B7_2021', 'B7_2022'];
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// get TC as annual bands stacks 
+var ftvB1 = ltgee.getFittedData(fittedTC, startYear, endYear, 'B1', true).select(from, bnds_b1).clip(aoi);
+var ftvB2 = ltgee.getFittedData(fittedTC, startYear, endYear, 'B2', true).select(from, bnds_b2).clip(aoi);
+var ftvB3 = ltgee.getFittedData(fittedTC, startYear, endYear, 'B3', true).select(from, bnds_b3).clip(aoi);
+var ftvB4 = ltgee.getFittedData(fittedTC, startYear, endYear, 'B4', true).select(from, bnds_b4).clip(aoi);
+var ftvB5 = ltgee.getFittedData(fittedTC, startYear, endYear, 'B5', true).select(from, bnds_b5).clip(aoi);
+var ftvB7 = ltgee.getFittedData(fittedTC, startYear, endYear, 'B7', true).select(from, bnds_b7).clip(aoi);
+
+// get the vertex stack 
+var vertInfo = ltgee.getLTvertStack(lt, runParams);
+
+// remove the src values from vertex stack - no need to download them
+var vertStack = vertInfo.select(['^.*yrs.*$']).addBands(vertInfo.select(['^.*fit.*$']));
+
+// stack all the layers up
+var ltStack2 = vertStack.addBands(ftvB1).addBands(ftvB2).addBands(ftvB3).addBands(ftvB4).addBands(ftvB5).addBands(ftvB7)
+                       .round().toShort().clip(aoi).unmask(-9999).select(['^.*B.*$']);
+print(ftvB1);
+print(vertStack);
+print(ltStack2);
+
+var landsat_1985 = ltStack2.select(['B1_1985','B2_1985','B3_1985','B4_1985','B5_1985','B7_1985']);
+var landsat_1986 = ltStack2.select(['B1_1986','B2_1986','B3_1986','B4_1986','B5_1986','B7_1986']);
+var landsat_1987 = ltStack2.select(['B1_1987','B2_1987','B3_1987','B4_1987','B5_1987','B7_1987']);
+var landsat_1989 = ltStack2.select(['B1_1989','B2_1989','B3_1989','B4_1989','B5_1989','B7_1989']);
+var landsat_1990 = ltStack2.select(['B1_1990','B2_1990','B3_1990','B4_1990','B5_1990','B7_1990']);
+var landsat_1995 = ltStack2.select(['B1_1995','B2_1995','B3_1995','B4_1995','B5_1995','B7_1995']);
+var landsat_2000 = ltStack2.select(['B1_2000','B2_2000','B3_2000','B4_2000','B5_2000','B7_2000']);
+var landsat_2005 = ltStack2.select(['B1_2005','B2_2005','B3_2005','B4_2005','B5_2005','B7_2005']);
+var landsat_2010 = ltStack2.select(['B1_2010','B2_2010','B3_2010','B4_2010','B5_2010','B7_2010']);
+var landsat_2015 = ltStack2.select(['B1_2015','B2_2015','B3_2015','B4_2015','B5_2015','B7_2015']);
+var landsat_2017 = ltStack2.select(['B1_2017','B2_2017','B3_2017','B4_2017','B5_2017','B7_2017']);
+var landsat_2020 = ltStack2.select(['B1_2020','B2_2020','B3_2020','B4_2020','B5_2020','B7_2020']);
+
+var landsat_1984 = ltStack2.select(['B1_1984','B2_1984','B3_1984','B4_1984','B5_1984','B7_1984'], ['B1','B2','B3','B4','B5','B7']);
+var landsat_2021 = ltStack2.select(['B1_2021','B2_2021','B3_2021','B4_2021','B5_2021','B7_2021'], ['B1','B2','B3','B4','B5','B7']);
+var landsat_2022 = ltStack2.select(['B1_2022','B2_2022','B3_2022','B4_2022','B5_2022','B7_2022'], ['B1','B2','B3','B4','B5','B7']);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var nVert = parseInt(runParams.maxSegments)+1;
+var fileNamePrefix = featureValue+'_'+featureKey+'_'+startYear.toString()+'_'+startDay.replace('-', '_')+'_'+endYear.toString()+'_'+endDay.replace('-', '_')+'_'+runName;  
+
+// make a timesync stack
+var box = aoi.bounds();
+var tsStack = ltgee.timesyncLegacyStack(startYear, endYear, startDay, endDay, box);
+
+// make clear pixel count stack
+var nClearCollection = ltgee.buildClearPixelCountCollection(startYear, endYear, startDay, endDay, aoi, maskThese);
+var nClearStack = ltgee.collectionToBandStack(nClearCollection, startYear, endYear);
+
+// make a list of images use to build collection
+var srCollectionList = ltgee.getCollectionIDlist(startYear, endYear, startDay, endDay, aoi, options).get('idList');
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_1989','B4_1989','B3_1989']}, "Landsat_1989", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_1990','B4_1990','B3_1990']}, "Landsat_1990", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_2000','B4_2000','B3_2000']}, "Landsat_2000", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_2010','B4_2010','B3_2010']}, "Landsat_2010", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_2017','B4_2017','B3_2017']}, "Landsat_2017", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_2020','B4_2020','B3_2020']}, "Landsat_2020", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_2021','B4_2021','B3_2021']}, "Landsat_2021", false);
+Map.addLayer(ltStack2, {min: 0, max: 4500, bands:['B5_2022','B4_2022','B3_2022']}, "Landsat_2022", true);
+Map.centerObject(aoi,8);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Export data
+
+// Export entire cubes at 30m and 100m resolution
+Export.image.toAsset({'image': ltStack2, 'region': aoi, 'scale': 30, 'description': 'gt_lt_ft_1984_2022_030m',
+  'assetId': 'projects/sica/compil_imagenes/opticas/landsat_ft/gt_landsat_boa_fitted_r70_1984_2022_0406_030m',
+  'maxPixels': 1e13});
+
+Export.image.toAsset({'image': ltStack2, 'region': aoi, 'scale': 100, 'description': 'gt_lt_ft_1984_2022_100m',
+  'assetId': 'projects/sica/compil_imagenes/opticas/landsat_ft/gt_landsat_boa_fitted_r70_1984_2022_0406_100m',
+  'maxPixels': 1e13});
+
+// Export 1984 and 2022 separately (2022 is not yet complete b/c the dry season data are not available)
+Export.image.toAsset({'image': landsat_1984, 'region': aoi, 'scale': 30, 'description': 'gt_lt_ft_1984_030m',
+  'assetId': 'projects/sica/compil_imagenes/opticas/landsat_ft/gt_landsat_boa_fitted_r70_1984_030m',
+  'maxPixels': 1e13});
+
+Export.image.toAsset({'image': landsat_2022, 'region': aoi, 'scale': 30, 'description': 'gt_lt_ft_2022_0406_030m',
+  'assetId': 'projects/sica/compil_imagenes/opticas/landsat_ft/gt_landsat_boa_fitted_r70_2022_030m',
+  'maxPixels': 1e13});
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,0 +1,32 @@
+// Last modified: 11 Nov. 2021
+
+var roi = ee.Geometry.Rectangle(-80.19, 8.55, -79.04, 9.67); // <- Region of Interest (ROI) can be changed
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var mod09 = ee.ImageCollection("MODIS/006/MOD09GA").filterDate('2021-03-05T00:00','2021-03-06T23:59').median().clip(roi);
+         
+var viirs = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA").filterDate('2021-03-05T00:00','2021-03-05T23:59')
+            .select(['I1', 'I2', 'I3'],['b1','b2','b3']).median().clip(roi);
+  
+var s3 = ee.ImageCollection("COPERNICUS/S3/OLCI").filterDate('2021-03-04T00:00','2021-03-06T23:59')
+            .select(["Oa02_radiance", "Oa04_radiance", "Oa05_radiance", "Oa06_radiance",
+              "Oa08_radiance", "Oa10_radiance", "Oa11_radiance", "Oa12_radiance", "Oa17_radiance", "Oa18_radiance"],
+              ["b2", "b4", "b5", "b6", "b8", "b10", "b11", "b12", "b17", "b18"]).median().clip(roi);
+
+var l8 = ee.ImageCollection("LANDSAT/LC08/C01/T1_SR").filterDate('2021-03-05T00:00','2021-03-05T23:59')
+        .filter(ee.Filter.inList('WRS_PATH', [12])).filter(ee.Filter.inList('WRS_ROW', [53,54,55]))
+        .select(['B2','B3','B4','B5','B6','B7']).median().clip(roi);
+
+var s2 = ee.ImageCollection('COPERNICUS/S2').filterDate('2021-03-05T00:00','2021-03-05T23:59').median().clip(roi);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Map.centerObject(roi,9);
+Map.addLayer(mod09, {bands:['sur_refl_b05', 'sur_refl_b02', 'sur_refl_b01'], min:90, max:7000},'MOD09_2021-03-05' ,false);
+Map.addLayer(viirs, {bands:['b3', 'b2', 'b1'], min:78, max:4700}, 'VIIRS_500m_2021-03-05', false);
+Map.addLayer(s3,{min: 3, max: 125, bands:['b8','b17','b6']}, 'S3_2021-03-05', false);
+Map.addLayer(l8, {min:0,max:3500,bands:['B6','B5','B4']}, 'L8_2021-03-05', false);
+Map.addLayer(s2, {bands: ['B11', 'B8', 'B4'], min: 300, max: 4550}, 'S2_2021-03-05', false);
+
+////////////////////////////////////////////////////// END /////////////////////////////////////////////////////////////////

@@ -1,0 +1,98 @@
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Este script (i) cuenta el # de imágenes disponibles en un lugar, e (ii) indica la fecha de la última imagen
+// Última actualización: 23 July 2021
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+var pt = ee.Geometry.Point([-88.3865, 18.39127]).buffer(250); // <- ** ESPECIFICAR UBICACIÓN AQUÍ **
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+function most_recent(txt, coll, pt) {
+
+var t = 'system:time_start';
+var d = 'YYYY-MM-dd';
+
+print("más vieja ", txt, ee.Date(ee.Image(coll.filterBounds(pt).sort(t, true).first()).get(t)).format(d));
+print("más reciente ", txt, ee.Date(ee.Image(coll.filterBounds(pt).sort(t, false).first()).get(t)).format(d));
+print("número total de imágenes ", txt, coll.filterBounds(pt).size());
+}
+
+// Se puede consultar la tabla en el siguiente enlace: https://bit.ly/sica_gee2
+
+var aster = ee.ImageCollection("ASTER/AST_L1T_003");
+var hyperion = ee.ImageCollection("EO1/HYPERION");
+var l1_1 = ee.ImageCollection('LANDSAT/LM01/C01/T1');
+var l1_2 = ee.ImageCollection('LANDSAT/LM01/C01/T2');
+var l2_1 = ee.ImageCollection('LANDSAT/LM02/C01/T1');
+var l2_2 = ee.ImageCollection('LANDSAT/LM02/C01/T2');
+var l3_1 = ee.ImageCollection('LANDSAT/LM03/C01/T1');
+var l3_2 = ee.ImageCollection('LANDSAT/LM03/C01/T2');
+var l4_1 = ee.ImageCollection("LANDSAT/LT04/C01/T1");
+var l4_2 = ee.ImageCollection("LANDSAT/LT04/C01/T2");
+var l5_1 = ee.ImageCollection("LANDSAT/LT05/C01/T1");
+var l5_2 = ee.ImageCollection("LANDSAT/LT05/C01/T2");
+var l7_0 = ee.ImageCollection("LANDSAT/LE07/C01/T1_RT");
+var l7_00 = ee.ImageCollection("LANDSAT/LE07/C01/T1_RT_TOA");
+var l7_1 = ee.ImageCollection("LANDSAT/LE07/C01/T1");
+var l7_2 = ee.ImageCollection("LANDSAT/LE07/C01/T2");
+var l8_0 = ee.ImageCollection("LANDSAT/LC08/C01/T1_RT");
+var l8_00 = ee.ImageCollection("LANDSAT/LC08/C01/T1_RT_TOA");
+var l8_1 = ee.ImageCollection("LANDSAT/LC08/C01/T1");
+var l8_2 = ee.ImageCollection("LANDSAT/LC08/C01/T2");
+var s2 = ee.ImageCollection("COPERNICUS/S2_SR");
+var s2_ = ee.ImageCollection("COPERNICUS/S2");
+var mod09 = ee.ImageCollection("MODIS/006/MOD09GQ");
+var myd09 = ee.ImageCollection("MODIS/006/MYD09GQ");
+var mcd43a4 = ee.ImageCollection("MODIS/006/MCD43A4");
+var viirs = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA");
+var proba100 = ee.ImageCollection("VITO/PROBAV/C1/S1_TOC_100M");
+var proba333 = ee.ImageCollection("VITO/PROBAV/C1/S1_TOC_333M");
+var s3 = ee.ImageCollection("COPERNICUS/S3/OLCI");
+var palsar = ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/SAR");
+var s1 = ee.ImageCollection("COPERNICUS/S1_GRD");
+var s1_asc = ee.ImageCollection("COPERNICUS/S1_GRD").filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING'));
+var s1_dsc = ee.ImageCollection("COPERNICUS/S1_GRD").filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'));
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// cuenta las imágenes y muestra la fecha de la adquisición más reciente para los siguientes sensores
+most_recent("Landsat-1 t1", l1_1, pt);
+most_recent("Landsat-1 t2", l1_2, pt);
+most_recent("Landsat-2 t1", l2_1, pt);
+most_recent("Landsat-2 t2", l2_2, pt);
+most_recent("Landsat-3 t1", l3_1, pt);
+most_recent("Landsat-3 t2", l3_2, pt);
+most_recent("Landsat-4 t1", l4_1, pt);
+most_recent("Landsat-4 t2", l4_2, pt);
+most_recent("Landsat-5 t1", l5_1, pt);
+most_recent("Landsat-5 t2", l5_2, pt);
+most_recent("Landsat-7 RT", l7_0, pt);
+most_recent("Landsat-8 RT", l8_0, pt);
+most_recent("MODIS-Terra", mod09, pt);
+most_recent("MODIS-Aqua", myd09, pt);
+most_recent("MCD43A4", mcd43a4, pt);
+most_recent("VIIRS", viirs, pt);
+most_recent("ASTER", aster, pt);
+most_recent("ALOS PALSAR", palsar, pt);
+
+// Sentinels + misiones afiliadas
+most_recent("PROBA-V 100m", proba100, pt);
+most_recent("PROBA-V 333m", proba333, pt);
+most_recent("Sentinel-3", s3, pt);
+most_recent("Sentinel-2", s2, pt);
+most_recent("Sentinel-1, órbita ascendente", s1_asc, pt);
+most_recent("Sentinel-1, órbita descendente", s1_dsc, pt);
+
+// Mostrar todas las imágenes Sentinel-1 disponible para la Ciudad de Panamá
+print(s1.filterBounds(pt));
+
+////////////////////////////////////////////////////////////////////////////////////
+
+// Como referencia, muestra la ubicación para la que se consultan las imágenes
+Map.addLayer(pt, {color: 'green'},'Ciudad de Panamá, Panamá', true); // punto de exhibición sobre la ciudad de Panamá
+Map.centerObject(pt, 13); // nivel de zoom de 13
+Map.setOptions('SATELLITE');
+
+/////////////////////////////////////// END /////////////////////////////////////////

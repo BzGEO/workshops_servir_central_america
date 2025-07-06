@@ -1,0 +1,17 @@
+
+var pt = ee.Geometry.Point([-77.2299, -11.6798]).buffer(250); // <- ** SPECIFY LOCATION HERE **
+
+var s1_asc = ee.ImageCollection("COPERNICUS/S1_GRD").filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING'));
+var s1_dsc = ee.ImageCollection("COPERNICUS/S1_GRD").filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'));
+
+var s1_asc_ = s1_asc.filterBounds(pt).sort('system:time_start', false).first();
+var s1_dsc_ = s1_dsc.filterBounds(pt).sort('system:time_start', false).first();
+
+print(s1_asc_);
+print(s1_dsc_);
+
+Map.addLayer(s1_dsc_, {bands: ['VV'], min: -25, max: 12}, 'S1_desc_recent', false);
+Map.addLayer(s1_asc_, {bands: ['VV'], min: -25, max: 12}, 'S1_asc_recent', false);
+//Map.addLayer(bounds2,{palette: "white"},"Int'l Borders"); // Add cam borders, with black outline
+//Map.addLayer(prot_areas,{palette: "yellow"},'Protected_areas', false);
+Map.centerObject(pt, 12);

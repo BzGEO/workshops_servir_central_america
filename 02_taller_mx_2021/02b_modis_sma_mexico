@@ -1,0 +1,119 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// This script estimates forest cover based on MODIS imagery
+// Users can adjust the country, dates for analysis
+// based on previous code from multiple sources
+// Questions? email: eac0021@uah.edu | last modified: 30 Sept. 2021
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// PART 1: Define country for analysis, and start and end dates for generation of MODIS mosaic
+var aoi = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017").filter(ee.Filter.eq('country_na', 'Mexico')), // <- change location here
+    date_start =  '2021-03-01',     // <- change start date here
+    date_end =    '2021-03-31';     // <- change end date here
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// PART 2: Import boundaries, MODIS data, rename bands, and set visualization settings
+
+var bnds = ee.Image().byte().paint({featureCollection:"projects/servir-wa/aoi/world_country_bounds_esri",width:2}), // international boundaries
+    pa = ee.Image().byte().paint({featureCollection:'WCMC/WDPA/current/polygons',width:1}).clip(aoi), // protected areas, from the WDPA
+    fro = ['Nadir_Reflectance_Band3','Nadir_Reflectance_Band4','Nadir_Reflectance_Band1','Nadir_Reflectance_Band2','Nadir_Reflectance_Band6','Nadir_Reflectance_Band7'],
+    to = ['B1','B2','B3','B4','B5','B7'], // output MODIS bands -> renames to similar Landsat-7 nomenclature: blue, green, red, NIR, SWIR1, SWIR2
+    pal_fcover = {min:0,max:1,palette:['pink','green']},
+    pal_mcd43a4 = {min:0,max:4500, bands:['B5','B4','B3']}, // palette for visualizing data in false color where forests are green
+    mod43 = ee.ImageCollection("MODIS/006/MCD43A4").select(fro,to), // uses MCD43A4 data; see: https://lpdaac.usgs.gov/products/mcd43a4v006/
+    msk = ee.Image('UMD/hansen/global_forest_change_2015').select('datamask').eq(1), // water mask
+    t = 'system:time_start', // system time variable needed for multiple operations
+    d = 'YYYY-MM-dd';  // date in the year-month-day format, also needed for an operation below
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// PART 3: FUNCTIONS
+
+// 3a. Spectral Mixture Analysis (SMA) function for (i) 'enhancing' contrast in MODIS imagery,
+// and (ii) more easily extracting forest cover from that MODIS imagery
+// for more on SMA, see: 
+
+function sma(img) {var fro = ['band_0', 'band_1', 'band_2'], // default output band names; not very descriptive
+                        to = ['bare', 'PV', 'NPV'], // output bands renamed
+                        // endmembers to unmix image to = bare substrate, photosynthetic vegetation, non-photosynthetic veg.
+                        // based partly on: https://developers.google.com/earth-engine/image_transforms
+                        em_pv = [189,409,202,3442,1521,600],
+                        em_npv = [381,557,682,2627,2400,1800],
+                        em_bare = [664,954,1190,1681,2700,2000];
+                        //t = 'system:time_start';
+                        //msk = ee.Image('UMD/hansen/global_forest_change_2015').select('datamask').eq(1); // masks water
+return img.unmix([em_bare, em_pv, em_npv], true, true).updateMask(msk).set(t,img.get(t)).select(fro,to);}
+
+// 3b. Map forest cover based on a 70% photosynthetic vegetation threshold
+
+function fcov70(img) {var from = ['constant'], to = ['canopy_cover'];
+return ee.Image(0).where(img.select('PV').gt(0.7).and(img.select('bare').lt(0.3)),1).set(t,img.get(t))
+  .select(from,to).updateMask(msk);}
+
+// 3c. Generate statistics based on forest cover algorithm above because extracting statistics
+// (e.g. areas) is a little involving in GEE, and otherwise we only have forest cover maps
+
+function fstat(img,aoi, year) {
+var f_stat = ee.Number(img.clip(aoi).select('canopy_cover').eq(1).multiply(ee.Image.pixelArea())
+                .reduceRegion({geometry:aoi,reducer: ee.Reducer.sum(),scale:500,maxPixels:1e18})
+                .get('canopy_cover')).divide(1000000);
+var for_pct = ee.Number(img.clip(aoi).select('canopy_cover').eq(1)
+                .reduceRegion({geometry:aoi,reducer:ee.Reducer.mean(),scale:500,maxPixels:1e18})
+                .get('canopy_cover')).multiply(100);
+print('MODIS, year: ', year);
+print('est. forest area: ', f_stat, 'sq. km');
+print('est. % forest cover: ', for_pct, 'percent');}
+
+// 3d. Temporal reduction: Generate monthly MCD43A4 mosaics
+function temp_red(m1, m2, y1, y2) {
+  var month_list = ee.List.sequence(m1,m2),
+      year_list = ee.List.sequence(y1, y2);
+  
+  return ee.ImageCollection.fromImages(
+  year_list.map(function (ynz) {
+  return month_list.map(function(mnz){
+  var w = mod43.filter(ee.Filter.calendarRange(ynz, ynz, 'year')).filter(ee.Filter.calendarRange(mnz, mnz, 'month')).median();
+  return w.set('year', ynz).set('month', mnz).set('date', ee.Date.fromYMD(ynz,mnz,1)).set('system:time_start',ee.Date.fromYMD(ynz,mnz,1));});}).flatten());}
+
+// 3e. Percent function, for multiplying SMA fractions x 100
+var pct = function(img) {return img.multiply(ee.Number(100)).set('system:time_start',img.get('system:time_start'));};
+
+// 3f. Extract dates for use in rest of script
+var date_last = ee.Date(ee.Image(mod43.filterBounds(aoi).sort(t, false).first()).get(t)).format(d);
+var img_last = ee.Image(mod43.filterBounds(aoi).sort(t, false).first()).get(t);
+var date_last = ee.Date(img_last).format(d);
+var date_last_ = ee.Number(img_last);
+var date_30mts_b4 = ee.Date((date_last_).subtract(ee.Number(78840000000))).format(d);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// PART 4: Generate forest cover statistics
+
+// Generate a graph to show the changes in spectral endmembers over the past ~2.5 years
+
+print(ui.Chart.image.series(temp_red(1, 12, 2018, 2021).filterDate(date_30mts_b4,date_last).map(sma).map(pct), aoi, ee.Reducer.mean(), 20000)
+.setOptions({title: "Mean MODIS (MCD43A4)-derived fractional cover, 2017-2020",vAxis:{title:'% fractional cover'},
+pointSize:5,series:{0:{color:'burlywood'},1:{color:'lime'},2:{color:'red'}}}));
+
+// Generate forest cover statistics for area of interest -> in the Console
+fstat(fcov70((sma(mod43.filterDate(date_start,date_end).median()))), aoi, 2020);
+
+// Print date of the most recent MCD43A4 image -> in the Console
+print("most recent ", "MODIS MCD43A4 imagery", date_last);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// PART 5: Add data to the map viewer below
+
+Map.addLayer(mod43.filterDate('2000-02-18','2000-03-16').median().clip(aoi), pal_mcd43a4, 'MCD43A4_2000-03*', false);
+Map.addLayer(sma(mod43.filterDate('2000-02-18','2000-03-16').median()).clip(aoi),{}, 'MCD43A4_2000-03*_SMA', false);
+Map.addLayer(mod43.filterDate(date_start,date_end).median().clip(aoi), pal_mcd43a4, 'MCD43A4_2020-03*_source_imagery', false);
+Map.addLayer(sma(mod43.filterDate(date_start,date_end).median()).clip(aoi),{}, 'MCD43A4_2020-03*_SMA', true);
+Map.addLayer(fcov70((sma(mod43.filterDate(date_start,date_end).median()))).clip(aoi),pal_fcover,'MCD43A4_2020-03*_forest_cover', false);
+Map.addLayer(pa, {palette: ['white']},'Protected Areas', true);
+Map.setOptions('SATELLITE'); // change from map to satellite image backdrop
+Map.centerObject(aoi, 5); // zoom in to the country selected, at zoom level 6
+
+/////////////////////////////////////////////////// END ///////////////////////////////////////////////////////////////////////////////////

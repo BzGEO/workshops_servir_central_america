@@ -1,0 +1,12 @@
+// Ultima actualizacion: 30/06/2020
+
+var roi0 = ee.Geometry.Rectangle(-92.7, 6.8, -68.25, 21.8);
+var roi1 = ee.Geometry.Polygon([[[-92.7,21.8],[-92.7,6.8],[-68.25,6.8],[-68.25,21.8]]], null, false);
+
+var roi_ln0 = ee.Image().byte().paint({featureCollection:roi0,width:2});
+var roi_ln1 = ee.Image().byte().paint({featureCollection:roi1,width:2});
+
+Map.addLayer(roi_ln0, {palette: ['yellow']},'ROI_0', false);
+Map.addLayer(roi_ln1, {palette: ['red']},'ROI_1', true);
+Map.setOptions('HYBRID');
+Map.centerObject(roi1,5);

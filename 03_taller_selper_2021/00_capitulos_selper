@@ -1,0 +1,17 @@
+// Ultima actualizacion: 10/11/2021
+// en base de: https://storymaps.arcgis.com/stories/82bffe5c0901490a8dfc44242ab99e11
+
+var roi1 = ee.FeatureCollection('USDOS/LSIB/2013').filter(ee.Filter.inList('name',
+          ['ARGENTINA','BRAZIL','CHILE','COLOMBIA','CUBA',
+          'MEXICO','PANAMA','PERU','VENEZUELA']));
+
+var roi1_ln = ee.Image().byte().paint({featureCollection:roi1,width:2});
+
+var roi2 = ee.FeatureCollection('FAO/GAUL_SIMPLIFIED_500m/2015/level1')
+          .filter(ee.Filter.eq('ADM1_NAME', 'Quintana Roo'));
+var roi2_ln = ee.Image().byte().paint({featureCollection:roi2,width:2});
+
+Map.addLayer(roi1_ln, {palette: ['red']},'Region_de_Interes', true);
+Map.addLayer(roi2_ln, {palette: ['lightyellow']},'Mexico_Quintana_Roo', true);
+Map.setOptions('HYBRID');
+Map.centerObject(roi1, 3);

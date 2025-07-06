@@ -1,0 +1,38 @@
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// This script (i) counts the # of images available for an area, and (ii) indicates the date of the last available imagery.
+// Last update: 13 Sept. 2023
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+var pt = ee.Geometry.Point([-52.9598, 5.2964]).buffer(250); // <- ** SPECIFY LOCATION HERE **
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+function most_recent(txt, coll, pt) {
+
+var t = 'system:time_start';
+var d = 'YYYY-MM-dd';
+
+print("más vieja ", txt, ee.Date(ee.Image(coll.filterBounds(pt).sort(t, true).first()).get(t)).format(d));
+print("más reciente ", txt, ee.Date(ee.Image(coll.filterBounds(pt).sort(t, false).first()).get(t)).format(d));
+print("número total de imágenes ", txt, coll.filterBounds(pt).size());
+}
+
+// Additional information on available satellite image collections in GEE: https://bit.ly/sica_gee2
+
+var hyperion = ee.ImageCollection("EO1/HYPERION");
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// count the images and show the date of the most recent image acquisition
+most_recent("Hyperion", hyperion, pt);
+
+////////////////////////////////////////////////////////////////////////////////////
+
+// As reference, show the center point for the area you have selected
+Map.addLayer(pt, {color: 'green'},'West of Paracou, French Guiana', true); // shows a green point near Paracou
+Map.centerObject(pt, 13); // zoom level 13
+Map.setOptions('SATELLITE');
+
+/////////////////////////////////////// END /////////////////////////////////////////

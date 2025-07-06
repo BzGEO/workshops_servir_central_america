@@ -1,0 +1,115 @@
+/* Last updated: 3 August 2022
+This script displays the available Planet / NICFI mosaics
+Questions: eac0021@uah.edu
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+To access the Planet data for your own use, including downloading or other use in Google Earth Engine, please refer to:
+https://www.planet.com/nicfi/
+
+The imagery included here can be accessed from the following:
+https://code.earthengine.google.com/?scriptPath=Examples:Datasets/projects_planet-nicfi_assets_basemaps_africa */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var roi = ee.Geometry.Rectangle(-77, 7, -93, 21.75); // Mesoamerica ROI
+var mes = ee.FeatureCollection("projects/bz-sdg/aoi/mes_bounds_swbd_300m");
+var bnds_intl = ee.FeatureCollection("projects/sica/aoi/limites_globales/world_borders_ln_esri");
+var bnds_intl_ln = ee.Image().byte().paint({featureCollection:bnds_intl,width:2});
+var pal_ps = {min:100,max:1575,bands:['R','G','B']};
+
+
+var pa = ee.FeatureCollection("projects/sica/compil_ecosistemas/areas_prot/mes_corridors_proarca_1996");
+var corr = ee.FeatureCollection("projects/sica/compil_ecosistemas/areas_prot/mes_prot_areas_wdpa_2019");
+var pa_ln = ee.Image().byte().paint({featureCollection:pa,width:1});
+var corr_ln = ee.Image().byte().paint({featureCollection:corr,width:1});
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var ps_2016_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2015-12_2016-05_mosaic').clip(roi);
+var ps_2016_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2016-06_2016-11_mosaic').clip(roi);
+var ps_2017_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2016-12_2017-05_mosaic').clip(roi);
+var ps_2017_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2017-06_2017-11_mosaic').clip(roi);
+var ps_2018_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2017-12_2018-05_mosaic').clip(roi);
+var ps_2018_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2018-06_2018-11_mosaic').clip(roi);
+var ps_2019_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2018-12_2019-05_mosaic').clip(roi);
+var ps_2019_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2019-06_2019-11_mosaic').clip(roi);
+var ps_2020_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2019-12_2020-05_mosaic').clip(roi);
+var ps_2020_08 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-06_2020-08_mosaic').clip(roi);
+
+/////
+var ps_2020_09 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-09_mosaic').clip(roi);
+var ps_2020_10 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-10_mosaic').clip(roi);
+var ps_2020_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-11_mosaic').clip(roi);
+var ps_2020_12 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-12_mosaic').clip(roi);
+var ps_2021_01 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-01_mosaic').clip(roi);
+var ps_2021_02 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-02_mosaic').clip(roi);
+var ps_2021_03 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-03_mosaic').clip(roi);
+var ps_2021_04 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-04_mosaic').clip(roi);
+var ps_2021_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-05_mosaic').clip(roi);
+var ps_2021_06 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-06_mosaic').clip(roi);
+var ps_2021_07 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-07_mosaic').clip(roi);
+var ps_2021_08 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-08_mosaic').clip(roi);
+var ps_2021_09 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-09_mosaic').clip(roi);
+var ps_2021_10 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-10_mosaic').clip(roi);
+var ps_2021_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-11_mosaic').clip(roi);
+var ps_2021_12 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-12_mosaic').clip(roi);
+
+
+var ps_2022_01 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-01_mosaic').clip(roi);
+var ps_2022_02 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-02_mosaic').clip(roi);
+var ps_2022_03 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-03_mosaic').clip(roi);
+var ps_2022_04 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-04_mosaic').clip(roi);
+var ps_2022_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-05_mosaic').clip(roi);
+var ps_2022_06 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-06_mosaic').clip(roi);
+//var ps_2022_0 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-0_mosaic').clip(roi);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+ // Six-monthly mosaics
+Map.addLayer(ps_2016_05,pal_ps,"PS_Q2016-05", false);
+Map.addLayer(ps_2016_11,pal_ps,"PS_Q2016-11", false);
+Map.addLayer(ps_2017_05,pal_ps,"PS_Q2017-05", false);
+Map.addLayer(ps_2017_11,pal_ps,"PS_Q2017-11", false);
+Map.addLayer(ps_2018_05,pal_ps,"PS_Q2018-05", false);
+Map.addLayer(ps_2018_11,pal_ps,"PS_Q2018-11", false);
+Map.addLayer(ps_2019_05,pal_ps,"PS_Q2019-05", false);
+Map.addLayer(ps_2019_11,pal_ps,"PS_Q2019-11", false);
+Map.addLayer(ps_2020_05,pal_ps,"PS_Q2020-05", false);
+Map.addLayer(ps_2020_08,pal_ps,"PS_Q2020-08", false);
+
+// Monthly mosaics
+Map.addLayer(ps_2020_09,pal_ps,"PS_2020-09", false); 
+Map.addLayer(ps_2020_09,pal_ps,"PS_2020-10", false);
+Map.addLayer(ps_2020_10,pal_ps,"PS_2020-11", false);
+Map.addLayer(ps_2020_11,pal_ps,"PS_2020-12", false);
+Map.addLayer(ps_2021_01,pal_ps,"PS_2021-01", false);
+Map.addLayer(ps_2021_02,pal_ps,"PS_2021-02", false);
+Map.addLayer(ps_2021_03,pal_ps,"PS_2021-03", false);
+Map.addLayer(ps_2021_04,pal_ps,"PS_2021-04", false);
+Map.addLayer(ps_2021_05,pal_ps,"PS_2021-05", false);
+Map.addLayer(ps_2021_06,pal_ps,"PS_2021-06", false);
+Map.addLayer(ps_2021_07,pal_ps,"PS_2021-07", false);
+Map.addLayer(ps_2021_08,pal_ps,"PS_2021-08", false);
+Map.addLayer(ps_2021_09,pal_ps,"PS_2021-09", false);
+Map.addLayer(ps_2021_10,pal_ps,"PS_2021-10", false);
+Map.addLayer(ps_2021_11,pal_ps,"PS_2021-11", false);
+Map.addLayer(ps_2021_12,pal_ps,"PS_2021-12", false);
+
+Map.addLayer(ps_2022_01,pal_ps,"PS_2022-01", false);
+Map.addLayer(ps_2022_02,pal_ps,"PS_2022-02", false);
+Map.addLayer(ps_2022_03,pal_ps,"PS_2022-03", true);
+Map.addLayer(ps_2022_04,pal_ps,"PS_2022-04", false);
+Map.addLayer(ps_2022_05,pal_ps,"PS_2022-05", false);
+Map.addLayer(ps_2022_06,pal_ps,"PS_2022-06", false);
+//Map.addLayer(ps_2022_0,pal_ps,"PS_2022-0", true);
+
+Map.addLayer(pa_ln,{palette:['yellow'],opacity:1},"Prot_areas", true); // Add protected areas
+Map.addLayer(corr_ln,{palette:['lime'],opacity:1},"Corridors", true); // Add corridors
+Map.addLayer(bnds_intl_ln,{palette:['white'],opacity:1},"Int'l bounds", true); // Add country boundaries
+
+Map.setOptions('SATELLITE');
+Map.setCenter(-85.179, 13.411, 6);
+//Map.centerObject(roi, 8);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

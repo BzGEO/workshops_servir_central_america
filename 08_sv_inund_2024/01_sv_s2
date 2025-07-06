@@ -1,0 +1,79 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var aoi = 
+    /* color: #d63000 */
+    /* shown: false */
+    /* displayProperties: [
+      {
+        "type": "rectangle"
+      }
+    ] */
+    ee.Geometry.Polygon(
+        [[[-88.28545312355025, 13.359449331591355],
+          [-88.28545312355025, 13.284948644537929],
+          [-88.14451913307174, 13.284948644537929],
+          [-88.14451913307174, 13.359449331591355]]], null, false);
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+// Last updated: 09.07.2024
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var aoi_ = ee.FeatureCollection("projects/sica/x_tmp/sv_floods_2024_07/sv_floods_aoi_01");
+
+var dem = ee.Image("USGS/SRTMGL1_003").select(['elevation']).clip(aoi); // import SRTM DEM
+var slope = ee.Terrain.slope(dem);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var viz_gb = {rules: [{filter: ee.Filter.expression('confidence >= 0.50'), color: 'red'}]};
+
+var gb = ui.Map.FeatureViewLayer('GOOGLE/Research/open-buildings/v3/polygons_FeatureView')
+            .setVisParams(viz_gb).setName('Buildings');
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+var dates = {"dat":[
+  '2024-04-15', // 0
+  '2024-07-04', // 1
+]};
+
+var dat = dates.dat;
+
+/////
+
+function s2_sv(day) {return ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+                            .select(['B2','B3','B4','B8','B11','B12'],['B1','B2','B3','B4','B5','B7'])
+                            .filterBounds(aoi)
+                            .filterDate(ee.Date(day).advance(-1, 'day'), ee.Date(day).advance(1, 'day'))
+                            .median().toUint16().clip(aoi)}
+
+/////
+var viz_s2_543 = {bands: ['B5', 'B4', 'B3'], min: [240], max:[4500]};
+var viz_s2_543_ = {bands: ['B5', 'B4', 'B3'], min: [730, 1800, -740], max:[2200, 3800, 2000]};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function mndwi(img){return img.normalizedDifference(['B5','B2']).rename('mndwi')}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Map.centerObject(aoi,13);
+Map.setOptions('HYBRID');
+
+Map.addLayer(slope,{},'Slope (SRTM 30m)', 0);
+
+Map.addLayer(s2_sv(dat[0]), viz_s2_543,'Sentinel-2 '+dat[0],1);
+Map.addLayer(s2_sv(dat[1]), viz_s2_543,'Sentinel-2 '+dat[1],1);
+
+Map.addLayer(mndwi(s2_sv(dat[0])), {}, "Sentinel-2 MNDWI "+dat[0],0);
+Map.addLayer(mndwi(s2_sv(dat[1])), {}, "Sentinel-2 MNDWI "+dat[1],0);
+
+Map.add(gb);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Export.image.toDrive({'image': slope.clip(aoi), 'region': aoi, 'scale': 30, 'description': 'export_drv_slp',
+        'folder': 'x_tmp_gee_outputs', 'fileNamePrefix': 'sv_san_miguel_slp_srtm_utm_30m', 'crs': 'EPSG:32616', 'maxPixels': 1e13});
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

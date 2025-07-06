@@ -1,0 +1,52 @@
+// Extract GFW data for COLOMBIA
+// author: Christine Evans, SERVIR Science Coordination Office (cae004@uah.edu)
+// last modified: 31 July 2023
+
+var roi = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017").filter(ee.Filter.inList('country_na', ['Colombia']));
+var department = ee.FeatureCollection('FAO/GAUL/2015/level1').filter(ee.Filter.inList('ADM1_NAME', ['Caqueta']));
+var outlineROI = ee.Image().byte().paint({featureCollection:roi,width:2});
+var outlineDepartment = ee.Image().byte().paint({featureCollection:department,width:2});
+Map.setOptions('satellite');
+Map.centerObject(roi, 8);
+Map.addLayer(outlineROI,{palette: "black"},'Colombia', true);
+Map.addLayer(outlineDepartment.clip(roi),{palette: "grey"},'Caqueta', true);
+
+var base2000 = ee.Image('UMD/hansen/global_forest_change_2022_v1_10').select('treecover2000').clip(department);
+var canopy_perc = 30; // According to Colombia's FREL
+var forest_def = base2000.gt(canopy_perc).updateMask(base2000.select("treecover2000").gt(canopy_perc)).clip(department);
+Map.addLayer(forest_def, {palette:['green']}, 'tree cover 2000');
+
+var Change = ee.Image('UMD/hansen/global_forest_change_2022_v1_10').select('lossyear').clip(department);
+var treeLossVisParam = {bands: ['lossyear'],min: 0, max: 22,  palette: ['yellow', 'red']};
+Map.addLayer(Change, {min: 0, max: 22,  palette: ['yellow', 'red']}, 'tree loss year');
+
+var Lossdataset2010 = Change.select('lossyear').eq(10).clip(department);
+var Loss2010 = Change.updateMask(Lossdataset2010);
+Map.addLayer(Loss2010, {palette: "red"},'Loss 2010', true);
+
+var ForestLoss= ui.Chart.image.histogram({image: Lossdataset2010.clip(department),
+                                          region: department,
+                                          scale: 100,
+                                          // maxBuckets: 100,
+                                          // minBucketWidth: 50,
+                                          // maxRaw: 500,
+                                          maxPixels: 1e13})
+                                          .setSeriesNames(['Area (ha.)'])
+                                          .setOptions({title: 'GFW Forest Coverage, 2000-2021', 
+                                          hAxis: {title: 'Binary Classification'}, 
+                                          vAxis: {title: 'Area (hectares)'}}); 
+print(ForestLoss);
+
+var SpawnBiomass = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").select('agb').mean().clip(department);
+Map.addLayer(SpawnBiomass,{min: -50, max: 80, palette: ['d9f0a3', 'addd8e', '78c679', '41ab5d', '238443', '005a32']},'Above Ground Biomass');
+
+var AGB_mask = SpawnBiomass.mask(Lossdataset2010)
+var AGB_masked = SpawnBiomass.updateMask(AGB_mask);
+
+var visualization = {min: -50, max: 80, palette: ['d9f0a3', 'addd8e', '78c679', '41ab5d', '238443', '005a32']};
+// Clip to extent of change 
+Map.addLayer(AGB_masked, visualization, "AGB", false);
+
+// Average to get Total Carbon Emissions for the regions
+var Activity_AGB = AGB_masked.reduceRegion({reducer: ee.Reducer.mean(), scale: 100, geometry: department,maxPixels: 1e9});
+print(Activity_AGB);

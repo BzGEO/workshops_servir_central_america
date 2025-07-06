@@ -1,0 +1,86 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+/* Visualization of MODIS data for tropical AMERICAS
+Last updated: 11 Nov. 2021
+questions: eac0021@uah.edu */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var a = require('users/bzgeo/examples:_ancillary/mes');
+var b = require('users/bzgeo/examples:_ancillary/ps_ame');
+var c = require('users/servirbz/packages:img_optical');
+
+var roi = a.roi_lac;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NDVI
+var ndvi_mod = function(img) {return img.normalizedDifference(['B4','B3']).rename('NDVI').updateMask(a.msk_wtr);};
+
+// NDVI differencing (normalized)
+
+var ndvi_diff_mod = function(img1, img2, t1) { // t1 = 0.80
+var ndvi = function(img) {return img.normalizedDifference(['B4','B3']).rename('NDVI').updateMask(a.msk_wtr);};
+var ps_ndvi_01 = ndvi(img1);
+var ps_ndvi_02 = ndvi(img2);
+var ps_ndvi_01_t80 = ps_ndvi_01.gte(t1).mask(ps_ndvi_01.gte(t1));
+var ps_ndvi_diff = ps_ndvi_02.subtract(ps_ndvi_01).divide(ps_ndvi_01).multiply(ee.Number(100))
+                              //.focal_mean()
+                              //.mask(ps_ndvi_01_t80);
+return ps_ndvi_diff;};
+
+// Change detection using threshold from normalized NDVI difference
+
+var cdx_mod = function(img1, img2, t1, t2) { // t1 = 0.80; t2 = -15
+var ndvi = function(img) {return img.normalizedDifference(['B4','B3']).rename('NDVI').updateMask(a.msk_wtr);};
+var ps_ndvi_01 = ndvi(img1);
+var ps_ndvi_02 = ndvi(img2);
+var ps_ndvi_01_t80 = ps_ndvi_01.gte(t1).mask(ps_ndvi_01.gte(t1));
+var ps_ndvi_diff = ps_ndvi_02.subtract(ps_ndvi_01).divide(ps_ndvi_01).multiply(ee.Number(100))
+                              .focal_mean()
+                              .mask(ps_ndvi_01_t80);
+return ps_ndvi_diff.lte(t2).mask(ps_ndvi_diff.lte(t2));};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var mcd43_2016t1 = c.mcd43.filterDate("2016-01-09","2016-04-23").median().clip(roi).updateMask(a.msk_wtr);
+var mcd43_2017t1 = c.mcd43.filterDate("2017-01-09","2017-04-23").median().clip(roi).updateMask(a.msk_wtr);
+var mcd43_2018t1 = c.mcd43.filterDate("2018-01-09","2018-04-23").median().clip(roi).updateMask(a.msk_wtr);
+var mcd43_2019t1 = c.mcd43.filterDate("2019-01-09","2019-04-23").median().clip(roi).updateMask(a.msk_wtr);
+var mcd43_2020t1 = c.mcd43.filterDate("2020-01-09","2020-04-23").median().clip(roi).updateMask(a.msk_wtr);
+var mcd43_2021t1 = c.mcd43.filterDate("2021-01-09","2021-04-23").median().clip(roi).updateMask(a.msk_wtr);
+
+var mcd_ndvi_diff_2016t1_2021t1 = ndvi_diff_mod(mcd43_2016t1, mcd43_2021t1, 0.80);
+var mcd_cdx_2016t1_2021t1 = cdx_mod(mcd43_2016t1, mcd43_2021t1, 0.80, -10);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Load bi-annual + monthly MODIS images
+
+Map.addLayer(mcd43_2016t1,c.pal_mcd43, 'MCD43A4_2016_JFMA', false);
+Map.addLayer(mcd43_2017t1,c.pal_mcd43, 'MCD43A4_2017_JFMA', false);
+Map.addLayer(mcd43_2018t1,c.pal_mcd43, 'MCD43A4_2018_JFMA', false);
+Map.addLayer(mcd43_2019t1,c.pal_mcd43, 'MCD43A4_2019_JFMA', false);
+Map.addLayer(mcd43_2020t1,c.pal_mcd43, 'MCD43A4_2020_JFMA', false);
+Map.addLayer(mcd43_2021t1,c.pal_mcd43, 'MCD43A4_2021_JFMA', true);
+
+// Load NDVI difference datasets
+Map.addLayer(mcd_ndvi_diff_2016t1_2021t1,b.pal_ndvi_diff,"MCD43A4_NDVI_diff_2016T1_2021T1", false);
+
+// Load change derived from NDVI differences
+Map.addLayer(mcd_cdx_2016t1_2021t1,{palette:['red'],opacity:1},"MCD43A4_NDVI_diff_2016T1_2021T1_t15%*", false);
+
+// Load ancillary boundary datasets
+Map.addLayer(a.pa_mes_ln,{palette:['yellow'],opacity:1},"Prot. Areas (Mesoamerica)", false);
+Map.addLayer(a.bnds_admin_l1_ln,{palette:['silver'],opacity:1},"Admin. bounds, L1", false);
+Map.addLayer(a.bnds_intl_ln1,{palette:['white'],opacity:1},"Int'l bounds", true);
+Map.setOptions('SATELLITE');
+Map.centerObject(roi,4);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Export to Drive
+Export.image.toDrive({'image': mcd_cdx_2016t1_2021t1.clip(roi), 'region': roi, 'scale': 500, 'description': 'export_drv_mcd43', 'folder': 'x_tmp_gee_outputs',
+  'fileNamePrefix': 'mcd_cdx_2016t1_2021t1_500m', 'crs': 'EPSG:4326', 'maxPixels': 1e13});
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

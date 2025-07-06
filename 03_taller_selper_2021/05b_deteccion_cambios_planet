@@ -1,0 +1,102 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var ps_q201705 = ee.Image("projects/bz-sdg/compil_imagery/optical/planet/subsets/mx_qroo_planetscope_2021_03"),
+    ps_202103 = ee.Image("projects/bz-sdg/compil_imagery/optical/planet/subsets/pn_canal_planetscope_2021_03");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+// Script for visualizing Planet / NICFI monthly and bi-annual mosaics for LATIN AMERICA & CARIBBEAN
+// Last updated: 21 Jan. 2022
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+NOTICE: By accessing this script, you agree to the following licensing agreement from Planet,
+including the clause that "all use must be non-commercial or not in the primary pursuit of profit."
+https://assets.planet.com/docs/Planet_ParticipantLicenseAgreement_NICFI.pdf
+
+To access the Planet data for your own use, including downloading or other use in Google Earth Engine, please refer to:
+https://www.planet.com/nicfi/
+
+The imagery included here are a subset of the Americas imagery, which can be accessed from the following:
+https://code.earthengine.google.com/?scriptPath=Examples%3ADatasets%2Fprojects_planet-nicfi_assets_basemaps_americas
+*/
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var a = require('users/bzgeo/examples:_ancillary/mes');
+var b = require('users/bzgeo/examples:_ancillary/ps_ame');
+var c = require('users/servirbz/packages:img_optical');
+
+var roi = ee.FeatureCollection('FAO/GAUL_SIMPLIFIED_500m/2015/level1').filter(ee.Filter.eq('ADM1_NAME', 'Quintana Roo'));
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// NDVI
+var ndvi_ps = function(img) {return img.normalizedDifference(['N','R']).rename('NDVI').updateMask(a.msk_wtr);};
+var ndvi_mod = function(img) {return img.normalizedDifference(['B4','B3']).rename('NDVI').updateMask(a.msk_wtr);};
+
+// NDVI differencing (normalized)
+var ndvi_diff_ps = function(img1, img2, t1) { // t1 = 0.80
+var ndvi = function(img) {return img.normalizedDifference(['N','R']).rename('NDVI').updateMask(a.msk_wtr);};
+var ps_ndvi_01 = ndvi(img1);
+var ps_ndvi_02 = ndvi(img2);
+var ps_ndvi_01_t80 = ps_ndvi_01.gte(t1).mask(ps_ndvi_01.gte(t1));
+var ps_ndvi_diff = ps_ndvi_02.subtract(ps_ndvi_01).divide(ps_ndvi_01).multiply(ee.Number(100))
+                              .focal_mean().mask(ps_ndvi_01_t80);
+return ps_ndvi_diff;};
+
+//
+var ndvi_diff_ps_ = function(img1, img2, t1) { // t1 = 0.80
+var ndvi = function(img) {return img.normalizedDifference(['N','R']).rename('NDVI').updateMask(a.msk_wtr);};
+var ps_ndvi_01 = ndvi(img1);
+var ps_ndvi_02 = ndvi(img2);
+var ps_ndvi_01_t80 = ps_ndvi_01.gte(t1);
+var ps_ndvi_diff = ps_ndvi_02.subtract(ps_ndvi_01).divide(ps_ndvi_01).multiply(ee.Number(100));
+return ps_ndvi_diff;};
+
+// Change detection using threshold from normalized NDVI difference
+var cdx_ps = function(img1, img2, t1, t2) { // t1 = 0.80; t2 = -15
+var ndvi = function(img) {return img.normalizedDifference(['N','R']).rename('NDVI').updateMask(a.msk_wtr);};
+var ps_ndvi_01 = ndvi(img1);
+var ps_ndvi_02 = ndvi(img2);
+var ps_ndvi_01_t80 = ps_ndvi_01.gte(t1).mask(ps_ndvi_01.gte(t1));
+var ps_ndvi_diff = ps_ndvi_02.subtract(ps_ndvi_01).divide(ps_ndvi_01).multiply(ee.Number(100))
+                              .focal_mean().mask(ps_ndvi_01_t80);
+return ps_ndvi_diff.lte(t2).mask(ps_ndvi_diff.lte(t2));};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var ps_ndvi_diff_201705_202103 = ndvi_diff_ps(ps_q201705, ps_202103, 0.75);
+var ps_ndvi_diff_201705_202103_ = ndvi_diff_ps_(ps_q201705, ps_202103, 0.75);
+
+/////
+var ps_cdx_201705_202103 = cdx_ps(ps_q201705, ps_202103, 0.80, -15);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Load bi-annual + monthly PlanetScope images
+Map.addLayer(ps_q201705,b.pal_ps,"PS_Q2017-05", true);
+Map.addLayer(ps_202103,b.pal_ps,"PS__2021-03", false);
+
+// Load bi-annual + monthly NDVI data
+Map.addLayer(ndvi_ps(ps_q201705),b.pal_ndvi,"PS_NDVI_Q2017-05", false);
+Map.addLayer(ndvi_ps(ps_202103),b.pal_ndvi,"PS_NDVI__2021-03", false);
+
+// Load NDVI difference datasets
+Map.addLayer(ps_ndvi_diff_201705_202103_,b.pal_ndvi_diff,"PS_NDVI_diff_201705_202103_", false);
+Map.addLayer(ps_ndvi_diff_201705_202103,b.pal_ndvi_diff,"PS_NDVI_diff_201705_202103", false);
+
+// Load change derived from NDVI differences
+Map.addLayer(ps_cdx_201705_202103,{palette:['red'],opacity:1},"PS_NDVI_diff_201705_202103_t15%", true);
+
+// Load ancillary boundary datasets
+Map.addLayer(a.pa_mes_ln,{palette:['yellow'],opacity:1},"Prot. Areas (Mesoamerica)", false);
+Map.addLayer(a.bnds_admin_l1_ln,{palette:['silver'],opacity:1},"Admin. bounds, L1", false);
+Map.addLayer(a.bnds_intl_ln1,{palette:['white'],opacity:1},"Int'l bounds", true);
+Map.setOptions('TERRAIN');
+Map.centerObject(roi,9);
+//Map.setCenter(-87.16589, 21.26427, 13);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

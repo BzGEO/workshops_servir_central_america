@@ -1,0 +1,34 @@
+// Last updated: 24.06.2024
+
+var a = require('users/servirbz/packages:temporal_reduction');
+
+var roi = ee.FeatureCollection('USDOS/LSIB/2013').filter(ee.Filter.eq('name', 'PANAMA'));
+
+var fromBands = ['Nadir_Reflectance_Band3','Nadir_Reflectance_Band4','Nadir_Reflectance_Band1','Nadir_Reflectance_Band2','Nadir_Reflectance_Band6','Nadir_Reflectance_Band7'];
+var toBands = ['b1','b2','b3','b4','b6','b7'];
+
+var msk = ee.Image('UMD/hansen/global_forest_change_2015').select('datamask').eq(1);
+var mod43 = ee.ImageCollection("MODIS/006/MCD43A4").select(fromBands,toBands);
+var t = 'system:time_start', // system time variable needed for multiple operations
+    d = 'YYYY-MM-dd';
+
+var mod43_2023 = a.temp_red_yr(mod43, 2001, 2023).median().clip(roi);
+
+function sma(img) {var fro = ['band_0', 'band_1', 'band_2'], // default output band names; not very descriptive
+                        to = ['bare', 'PV', 'NPV'], // output bands renamed
+                        // endmembers to unmix image to = bare substrate, photosynthetic vegetation, non-photosynthetic veg.
+                        // based partly on: https://developers.google.com/earth-engine/image_transforms
+                        em_pv = [189,409,202,3442,1521,600],
+                        em_npv = [381,557,682,2627,2400,1800],
+                        em_bare = [664,954,1190,1681,2700,2000];
+                        //t = 'system:time_start';
+                        //msk = ee.Image('UMD/hansen/global_forest_change_2015').select('datamask').eq(1); // masks water
+return img.unmix([em_bare, em_pv, em_npv], true, true).updateMask(msk).set(t,img.get(t)).select(fro,to);}
+
+var sma_mod43_2023 = sma(mod43_2023);
+print(sma_mod43_2023);
+
+Map.setOptions('SATELLITE'); // change from map to satellite image backdrop
+Map.centerObject(roi, 8);
+Map.addLayer(mod43_2021,{min:100,max:4500, bands:['b6','b4','b3']}, 'MCD43A4_2001_2023', true);
+Map.addLayer(sma(mod43_2021),{}, 'MCD43A4_SMA_2001_2023', true);

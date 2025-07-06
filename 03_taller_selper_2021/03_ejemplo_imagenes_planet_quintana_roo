@@ -1,0 +1,159 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var geometry = 
+    /* color: #98ff00 */
+    /* shown: false */
+    /* displayProperties: [
+      {
+        "type": "rectangle"
+      }
+    ] */
+    ee.Geometry.Polygon(
+        [[[-89.45745988537142, 21.6136695347265],
+          [-89.45745988537142, 17.87122458772857],
+          [-86.66693254162142, 17.87122458772857],
+          [-86.66693254162142, 21.6136695347265]]], null, false);
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+// Script for visualizing Planet / NICFI monthly and bi-annual mosaics for LATIN AMERICA & CARIBBEAN
+// Last updated: 1 June 2023
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+NOTICE: By accessing this script, you agree to the following licensing agreement from Planet,
+including the clause that "all use must be non-commercial or not in the primary pursuit of profit."
+https://assets.planet.com/docs/Planet_ParticipantLicenseAgreement_NICFI.pdf
+
+To access the Planet data for your own use, including downloading or other use in Google Earth Engine, please refer to:
+https://www.planet.com/nicfi/
+
+The imagery included here are a subset of the Americas imagery, which can be accessed from the following:
+https://code.earthengine.google.com/?scriptPath=Examples%3ADatasets%2Fprojects_planet-nicfi_assets_basemaps_americas
+*/
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var roi = ee.FeatureCollection('FAO/GAUL_SIMPLIFIED_500m/2015/level1')
+          .filter(ee.Filter.eq('ADM1_NAME', 'Quintana Roo'));
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var ame_ps_2016_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2015-12_2016-05_mosaic').clip(roi);
+var ame_ps_2016_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2016-06_2016-11_mosaic').clip(roi);
+var ame_ps_2017_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2016-12_2017-05_mosaic').clip(roi);
+var ame_ps_2017_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2017-06_2017-11_mosaic').clip(roi);
+var ame_ps_2018_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2017-12_2018-05_mosaic').clip(roi);
+var ame_ps_2018_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2018-06_2018-11_mosaic').clip(roi);
+var ame_ps_2019_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2018-12_2019-05_mosaic').clip(roi);
+var ame_ps_2019_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2019-06_2019-11_mosaic').clip(roi);
+var ame_ps_2020_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2019-12_2020-05_mosaic').clip(roi);
+var ame_ps_2020_08 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-06_2020-08_mosaic').clip(roi);
+
+/////
+var ame_ps_2020_09 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-09_mosaic').clip(roi);
+var ame_ps_2020_10 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-10_mosaic').clip(roi);
+var ame_ps_2020_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-11_mosaic').clip(roi);
+var ame_ps_2020_12 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2020-12_mosaic').clip(roi);
+var ame_ps_2021_01 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-01_mosaic').clip(roi);
+var ame_ps_2021_02 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-02_mosaic').clip(roi);
+var ame_ps_2021_03 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-03_mosaic').clip(roi);
+var ame_ps_2021_04 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-04_mosaic').clip(roi);
+var ame_ps_2021_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-05_mosaic').clip(roi);
+var ame_ps_2021_06 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-06_mosaic').clip(roi);
+var ame_ps_2021_07 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-07_mosaic').clip(roi);
+var ame_ps_2021_08 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-08_mosaic').clip(roi);
+var ame_ps_2021_09 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-09_mosaic').clip(roi);
+var ame_ps_2021_10 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-10_mosaic').clip(roi);
+var ame_ps_2021_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-11_mosaic').clip(roi);
+var ame_ps_2021_12 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2021-12_mosaic').clip(roi);
+var ame_ps_2022_01 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-01_mosaic').clip(roi);
+var ame_ps_2022_02 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-02_mosaic').clip(roi);
+var ame_ps_2022_03 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-03_mosaic').clip(roi);
+var ame_ps_2022_04 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-04_mosaic').clip(roi);
+var ame_ps_2022_05 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-05_mosaic').clip(roi);
+var ame_ps_2022_06 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-06_mosaic').clip(roi);
+var ame_ps_2022_07 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-07_mosaic').clip(roi);
+var ame_ps_2022_08 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-08_mosaic').clip(roi);
+var ame_ps_2022_09 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-09_mosaic').clip(roi);
+var ame_ps_2022_10 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-10_mosaic').clip(roi);
+var ame_ps_2022_11 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-11_mosaic').clip(roi);
+var ame_ps_2022_12 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2022-12_mosaic').clip(roi);
+var ame_ps_2023_01 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2023-01_mosaic').clip(roi);
+var ame_ps_2023_02 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2023-02_mosaic').clip(roi);
+var ame_ps_2023_03 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2023-03_mosaic').clip(roi);
+var ame_ps_2023_04 = ee.Image('projects/planet-nicfi/assets/basemaps/americas/planet_medres_normalized_analytic_2023-04_mosaic').clip(roi);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Map.centerObject(roi,8);
+
+// Six-monthly mosaics
+Map.addLayer(ame_ps_2016_05,{min:100,max:1575,bands:['R','G','B']},"PS_Q2016-05", false);
+Map.addLayer(ame_ps_2016_11,{min:100,max:1575,bands:['R','G','B']},"PS_Q2016-11", false);
+Map.addLayer(ame_ps_2017_05,{min:100,max:1575,bands:['R','G','B']},"PS_Q2017-05", false);
+Map.addLayer(ame_ps_2017_11,{min:100,max:1575,bands:['R','G','B']},"PS_Q2017-11", false);
+Map.addLayer(ame_ps_2018_05,{min:100,max:1575,bands:['R','G','B']},"PS_Q2018-05", false);
+Map.addLayer(ame_ps_2018_11,{min:100,max:1575,bands:['R','G','B']},"PS_Q2018-11", false);
+Map.addLayer(ame_ps_2019_05,{min:100,max:1575,bands:['R','G','B']},"PS_Q2019-05", false);
+Map.addLayer(ame_ps_2019_11,{min:100,max:1575,bands:['R','G','B']},"PS_Q2019-11", false);
+Map.addLayer(ame_ps_2020_05,{min:100,max:1575,bands:['R','G','B']},"PS_Q2020-05", false);
+Map.addLayer(ame_ps_2020_08,{min:100,max:1575,bands:['R','G','B']},"PS_Q2020-08", false);
+
+// Monthly mosaics
+Map.addLayer(ame_ps_2020_09,{min:100,max:1575,bands:['R','G','B']},"PS_2020-09", false);
+Map.addLayer(ame_ps_2020_10,{min:100,max:1575,bands:['R','G','B']},"PS_2020-10", false);
+Map.addLayer(ame_ps_2020_11,{min:100,max:1575,bands:['R','G','B']},"PS_2020-11", false);
+Map.addLayer(ame_ps_2020_12,{min:100,max:1575,bands:['R','G','B']},"PS_2020-12", false);
+Map.addLayer(ame_ps_2021_01,{min:100,max:1575,bands:['R','G','B']},"PS_2021-01", false);
+Map.addLayer(ame_ps_2021_02,{min:100,max:1575,bands:['R','G','B']},"PS_2021-02", false);
+Map.addLayer(ame_ps_2021_03,{min:100,max:1575,bands:['R','G','B']},"PS_2021-03", false);
+Map.addLayer(ame_ps_2021_04,{min:100,max:1575,bands:['R','G','B']},"PS_2021-04", false);
+Map.addLayer(ame_ps_2021_05,{min:100,max:1575,bands:['R','G','B']},"PS_2021-05", false);
+Map.addLayer(ame_ps_2021_06,{min:100,max:1575,bands:['R','G','B']},"PS_2021-06", false);
+Map.addLayer(ame_ps_2021_07,{min:100,max:1575,bands:['R','G','B']},"PS_2021-07", false);
+Map.addLayer(ame_ps_2021_08,{min:100,max:1575,bands:['R','G','B']},"PS_2021-08", false);
+Map.addLayer(ame_ps_2021_09,{min:100,max:1575,bands:['R','G','B']},"PS_2021-09", false);
+Map.addLayer(ame_ps_2021_10,{min:100,max:1575,bands:['R','G','B']},"PS_2021-10", false);
+Map.addLayer(ame_ps_2021_11,{min:100,max:1575,bands:['R','G','B']},"PS_2021-11", false);
+Map.addLayer(ame_ps_2021_12,{min:100,max:1575,bands:['R','G','B']},"PS_2021-12", false);
+
+Map.addLayer(ame_ps_2022_01,{min:100,max:1575,bands:['R','G','B']},"PS_2022-01", false);
+Map.addLayer(ame_ps_2022_02,{min:100,max:1575,bands:['R','G','B']},"PS_2022-02", false);
+Map.addLayer(ame_ps_2022_03,{min:100,max:1575,bands:['R','G','B']},"PS_2022-03", false);
+Map.addLayer(ame_ps_2022_04,{min:100,max:1575,bands:['R','G','B']},"PS_2022-04", false);
+Map.addLayer(ame_ps_2022_05,{min:100,max:1575,bands:['R','G','B']},"PS_2022-05", false);
+Map.addLayer(ame_ps_2022_06,{min:100,max:1575,bands:['R','G','B']},"PS_2022-06", false);
+Map.addLayer(ame_ps_2022_07,{min:100,max:1575,bands:['R','G','B']},"PS_2022-07", false);
+Map.addLayer(ame_ps_2022_08,{min:100,max:1575,bands:['R','G','B']},"PS_2022-08", false);
+Map.addLayer(ame_ps_2022_09,{min:100,max:1575,bands:['R','G','B']},"PS_2022-09", false);
+Map.addLayer(ame_ps_2022_10,{min:100,max:1575,bands:['R','G','B']},"PS_2022-10", false);
+Map.addLayer(ame_ps_2022_11,{min:100,max:1575,bands:['R','G','B']},"PS_2022-11", false);
+Map.addLayer(ame_ps_2022_12,{min:100,max:1575,bands:['R','G','B']},"PS_2022-12", false);
+
+Map.addLayer(ame_ps_2023_01,{min:100,max:1575,bands:['R','G','B']},"PS_2023-01", false);
+Map.addLayer(ame_ps_2023_02,{min:100,max:1575,bands:['R','G','B']},"PS_2023-02", false);
+Map.addLayer(ame_ps_2023_03,{min:100,max:1575,bands:['R','G','B']},"PS_2023-03", false);
+Map.addLayer(ame_ps_2023_04,{min:100,max:1575,bands:['R','G','B']},"PS_2023-04", true);
+
+/*
+
+Map.addLayer(ame_ps_2023_05,{min:100,max:1575,bands:['R','G','B']},"PS_2023-05", true);
+Map.addLayer(ame_ps_2023_06,{min:100,max:1575,bands:['R','G','B']},"PS_2023-06", true);
+Map.addLayer(ame_ps_2023_07,{min:100,max:1575,bands:['R','G','B']},"PS_2023-07", true);
+Map.addLayer(ame_ps_2023_08,{min:100,max:1575,bands:['R','G','B']},"PS_2023-08", true);
+Map.addLayer(ame_ps_2023_09,{min:100,max:1575,bands:['R','G','B']},"PS_2023-09", true);
+Map.addLayer(ame_ps_2023_10,{min:100,max:1575,bands:['R','G','B']},"PS_2023-10", true);
+Map.addLayer(ame_ps_2023_11,{min:100,max:1575,bands:['R','G','B']},"PS_2023-11", true);
+Map.addLayer(ame_ps_2023_12,{min:100,max:1575,bands:['R','G','B']},"PS_2023-12", true);
+*/
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Export.image.toAsset({image: ame_ps_2021_10.clip(roi), description: 'export_ee',
+assetId: 'mx_qroo_planetscope_2021_10_5m', scale: 5, region: roi, maxPixels: 1e13});
+
+Export.image.toDrive({'image': ame_ps_2021_10.int16().clip(roi), 'region': roi, 'scale': 5, 'description': 'export_drv',
+'folder': 'x_tmp_gee_outputs', 'fileNamePrefix': 'mx_qroo_planetscope_2021_10_5m', 'crs': 'EPSG:32616', 'maxPixels': 1e13});
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
